@@ -13,5 +13,8 @@
     <servlet-name>ScuolaServlet</servlet-name>
     <url-pattern>/ScuolaServlet</url-pattern>
   </servlet-mapping>
+  <session-config>
+    <session-timeout>30</session-timeout> <!-- Timeout in minutes -->
+  </session-config>
 </web-app>
 

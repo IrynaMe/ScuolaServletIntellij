@@ -15,6 +15,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 public class ScuolaServlet extends HttpServlet {
     private ManageDb mioDB;
@@ -32,8 +33,8 @@ public class ScuolaServlet extends HttpServlet {
     public void init(ServletConfig config) {
         System.out.println("Servlet is being initialized");
         mioDB = new ManageDb();
-        boolean bRet = mioDB.Connect("localhost", 3306, "gestione_scuola", "user_scuola", "scuola123");
-       // boolean bRet = mioDB.Connect("localhost", 8889, "gestione_scuola", "root", "root");
+       // boolean bRet = mioDB.Connect("localhost", 3306, "gestione_scuola", "user_scuola", "scuola123");
+        boolean bRet = mioDB.Connect("localhost", 8889, "gestione_scuola", "root", "root");
         if (bRet) {
             System.out.println("********** Connessione al DB avvenuta correttamente ***********");
         } else {
@@ -45,10 +46,13 @@ public class ScuolaServlet extends HttpServlet {
      * handles HTTP GET request
      */
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false); // !!!Retrieve the session, don't create a new one
+        Boolean isAutorizzato = (session != null) ? (Boolean) session.getAttribute("isAutorizzato") : false;//!!!
+
         String action = request.getParameter("action");
         String personType = request.getParameter("personType");
         String submitAction = request.getParameter("submitAction");
-        if(isAutorizzato==true){
+        if(Boolean.TRUE.equals(isAutorizzato)){//!!!
             try {
                 if ("cerca".equals(submitAction)) {
                     cercaPersonaPerCf(request, response, personType, true);
@@ -77,8 +81,11 @@ public class ScuolaServlet extends HttpServlet {
      */
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false); // !!!Retrieve the session, don't create a new one
+        Boolean isAutorizzato = (session != null) ? (Boolean) session.getAttribute("isAutorizzato") : false;//!!!
+
         String formTypeScelta = request.getParameter("formType");
-        if (isAutorizzato==true&&formTypeScelta.equals("newPerson")) {
+        if (Boolean.TRUE.equals(isAutorizzato) &&formTypeScelta.equals("newPerson")) {//!!!
             inserimentoPersona(request, response);
         }else { //(formTypeScelta.equals("login")
             login(request, response);
@@ -98,26 +105,28 @@ public class ScuolaServlet extends HttpServlet {
 
     private void login(HttpServletRequest request, HttpServletResponse response) throws IOException {
         ResultSet resultSet = null;
-        //take params from form or if not-use inserted before from class properties
+
         if (request.getParameter("username") != null && request.getParameter("password") != null) {
             usernameCorrente = request.getParameter("username");
             passwordCorrente = request.getParameter("password");
         }
-        if (usernameCorrente != null & passwordCorrente != null) {
+
+        if (usernameCorrente != null && passwordCorrente != null) {
             try {
                 String sqlQuery = "SELECT * FROM utente WHERE username='" + usernameCorrente + "' AND password='" + passwordCorrente + "' AND abilitato=1";
                 resultSet = mioDB.readInDb(sqlQuery);
+
                 if (resultSet.next()) {
+
                     RequestDispatcher dispatcher = request.getRequestDispatcher("/welcome.html");
                     dispatcher.forward(request, response);
-                    isAutorizzato=true;
                 } else {
                     writer = response.getWriter();
                     writer.println("<html><body><h2>Non trovo utente con " + usernameCorrente + " e password inserito!</h2>");
                     writer.println("<p>Utente NON autorizzato</p>");
                     writer.println("</body></html>");
                     writer.flush();
-                    isAutorizzato=false;
+
                 }
             } catch (ServletException | SQLException e) {
                 e.printStackTrace();
@@ -125,8 +134,8 @@ public class ScuolaServlet extends HttpServlet {
         } else {
             System.out.println("User non definito");
         }
-
     }
+
 
     private String dammiNomeTabella(String personType) {
         String nomeTabellaPersona = null;
